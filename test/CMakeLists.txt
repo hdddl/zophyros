@@ -1,0 +1,2 @@
+add_executable(httpServer httpServer.cc)
+target_link_libraries(httpServer zophyros muduo_net muduo_base)
