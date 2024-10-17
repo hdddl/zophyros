@@ -1,9 +1,11 @@
 #include "httpRoute.h"
+#include "common.h"
 #include "muduo/base/Logging.h"
 
 using namespace zophyros;
 
 HttpRoute::HttpRoute()
+        : callbacks_m()
 {
 
 }
@@ -60,4 +62,14 @@ void HttpRoute::defaultNotFoundHandler(const HttpRequest& request, HttpResponse&
     response.body() = "{\"error\": \"Not Found\"}";
 
     response.result(boost::beast::http::status::not_found);
+}
+
+void HttpRoute::defaultServerErrorHandler(const HttpRequest& request, HttpResponse& response)
+{
+    LOG_DEBUG << "Method Entry";
+
+    response.set(boost::beast::http::field::content_type, "application/json");
+    response.body() = "{\"error\": \"Internal Server Error\"}";
+
+    response.result(boost::beast::http::status::internal_server_error);
 }

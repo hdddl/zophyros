@@ -1,3 +1,0 @@
-[submodule "3rdParty/muduo"]
-	path = 3rdParty/muduo
-	url = https://github.com/chenshuo/muduo

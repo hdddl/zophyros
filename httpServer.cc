@@ -4,8 +4,15 @@
 
 #include "muduo/base/Logging.h"
 
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/http/buffer_body.hpp>
+#include <boost/beast/http/error.hpp>
 #include <boost/beast/http/parser.hpp>
 #include <boost/beast/http/serializer.hpp>
+#include <boost/none.hpp>
+#include <cstddef>
 
 
 using namespace zophyros;
@@ -16,8 +23,9 @@ using namespace std::placeholders;
 HttpServer::HttpServer(EventLoop* loop,
                        const InetAddress& listenAddr,
                        const string& name,
+                       HttpRoutePtr& httpRouter,
                        TcpServer::Option option)
-  : httpRouter_m(new HttpRoute()),
+  : httpRouter_m(std::move(httpRouter)),
     tcpServer_m(loop, listenAddr, name, option)
 {
     tcpServer_m.setConnectionCallback(
@@ -44,36 +52,38 @@ void HttpServer::onMessage(const TcpConnectionPtr& conn,
 {
     LOG_TRACE << "Method Entry";
 
-    // boost mutable buffer, not copy underlying data
-    boost::asio::mutable_buffer tBuf(
-                                    (void *)buf->peek(), buf->readableBytes());
-    
-    // parser http request
-    boost::beast::http::request_parser<boost::beast::http::buffer_body> parser;
-    boost::beast::error_code ec;
-    size_t n = parser.put(tBuf, ec);
-    if(n == 0)
-    {
-        LOG_ERROR  << "parse failed, err" << ec.message();
-        return;
-    }
+    LOG_INFO << "readableBytes: " << buf->readableBytes();
 
-    // parser http request success, begin process it
-    LOG_INFO << "parse success";
+    boost::beast::http::request_parser<
+                        boost::beast::http::buffer_body> parser;
+    char buf_t[512];
+    parser.get().body().data = buf_t;
+    parser.get().body().size = sizeof(buf_t);
+
+    // ToDo: handle error
+    parser.eager(true);
+    boost::beast::error_code ec;
+    std::size_t n = parser.put(
+        boost::beast::net::buffer(buf->peek(), buf->readableBytes()), ec);
+
+    // Set up the body for reading.
+    // This is how much was parsed:
+    parser.get().body().data = buf_t;
+    parser.get().body().size = sizeof(buf_t) - parser.get().body().size;
+    
     onRequest(conn, parser.get());
 }
 
-void HttpServer::onRequest(const TcpConnectionPtr& conn, const HttpRequest& message)
+void HttpServer::onRequest(const TcpConnectionPtr& conn, const HttpRequest& request)
 {
-    auto method = message.method();
-    auto path = message.target();
-
+    auto method = request.method();
+    auto path = request.target();
 
     HttpResponse resp;
 
     // find callback function
     auto callback = httpRouter_m->getCallback(method, path);
-    callback(message, resp);
+    callback(request, resp);
 
     // encoding http response
     resp.prepare_payload();
@@ -100,4 +110,3 @@ void HttpServer::onRequest(const TcpConnectionPtr& conn, const HttpRequest& mess
 
     conn->send(buf.peek(), buf.readableBytes());
 }
-

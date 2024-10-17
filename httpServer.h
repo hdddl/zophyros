@@ -9,15 +9,16 @@
 namespace zophyros
 {
 
+class HttpRoute;
+typedef std::unique_ptr<HttpRoute> HttpRoutePtr;
 class HttpServer
 {
 public:
     HttpServer(muduo::net::EventLoop* loop,
              const muduo::net::InetAddress& listenAddr,
              const std::string& name,
+             HttpRoutePtr& route,
              muduo::net::TcpServer::Option option = muduo::net::TcpServer::kNoReusePort);
-
-    muduo::net::EventLoop* getLoop() const { return tcpServer_m.getLoop(); }
 
     void start();
 private:
@@ -28,7 +29,7 @@ private:
 
     void onRequest(const muduo::net::TcpConnectionPtr& conn, const HttpRequest& message);
     
-    std::unique_ptr<HttpRoute> httpRouter_m;
+    HttpRoutePtr httpRouter_m;
 
     // Lower layer TCP Server (thread number is set on this)
     muduo::net::TcpServer tcpServer_m;

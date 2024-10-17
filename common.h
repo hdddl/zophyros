@@ -12,6 +12,9 @@ namespace zophyros
 typedef boost::beast::http::request<boost::beast::http::buffer_body> HttpRequest;   
 typedef boost::beast::http::response<boost::beast::http::string_body> HttpResponse;
 
+const std::string APPLICATION_JSON = "application/json";
+
+
 }
 
 #endif

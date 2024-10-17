@@ -12,7 +12,7 @@ class HttpRoute
     typedef std::function<void(const HttpRequest&, HttpResponse&)> HttpCallbackFunc;
 
     typedef std::map<boost::beast::http::verb, 
-                    std::map<boost::beast::string_view, HttpCallbackFunc>> CallbackFuncsMap_m;
+                    std::map<std::string, HttpCallbackFunc>> CallbackFuncsMap_m;
 public:
     HttpRoute();
     ~HttpRoute();
@@ -29,6 +29,8 @@ private:
 
     // if no callback function found, return this function
    static void defaultNotFoundHandler(const HttpRequest& request, HttpResponse& response);
+
+   static void defaultServerErrorHandler(const HttpRequest& request, HttpResponse& response);
 };
 
 }
